@@ -27,7 +27,6 @@ module.exports = {
   decrypt: "decrypt",
   files: "Dosyalar",
   zipDownload: "Tüm Dosyaları ZIP olarak indir",
-  tarGzDownload: "Tüm Dosyaları tar.gz olarak indir",
   oneTimeDownloadExpired: "Tek seferlik indirme. Süre dolmuş",
   fileSizeExceed: "Dosya Boyutu Büyük %% Maksimum: %%",
   bucketSizeExceed: "Yükleme Boyutu Büyük %% Maksimum: %%",

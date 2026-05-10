@@ -27,7 +27,6 @@ module.exports = {
   decrypt: "解锁",
   files: "文件上传列表",
   zipDownload: " 压缩打包下载（zip格式）",
-  tarGzDownload: "压缩打包下载（tar.gz格式）",
   oneTimeDownloadExpired: "该链接被设置为阅后即焚，文件已销毁.",
   fileSizeExceed: "文件大小 %% 超过最大体积 of %%",
   bucketSizeExceed: "上传大小 %% 超过最大体积 %%",

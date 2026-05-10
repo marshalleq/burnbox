@@ -20,27 +20,6 @@
     .panel.panel-primary(v-if='!needsPassword && !loading')
       .panel-heading
         strong {{ $root.lang.files }}
-        div.pull-right.btn-group.btn-download-archive(v-if="downloadsAvailable")
-          a.btn.btn-sm.btn-default(
-            @click="downloadAll('zip')"
-            @keydown.enter.prevent="downloadAll('zip')"
-            @keydown.space.prevent="downloadAll('zip')"
-            :title="$root.lang.zipDownload"
-            tabindex="0"
-            role="button"
-          )
-            icon.fa-fw(name="download")
-            |  zip
-          a.btn.btn-sm.btn-default(
-            @click="downloadAll('tar.gz')"
-            @keydown.enter.prevent="downloadAll('tar.gz')"
-            @keydown.space.prevent="downloadAll('tar.gz')"
-            :title="$root.lang.tarGzDownload"
-            tabindex="0"
-            role="button"
-          )
-            icon.fa-fw(name="download")
-            |  tar.gz
       .panel-body
         table.table.table-hover.table-striped.files
           tbody
@@ -67,6 +46,16 @@
                   strong {{ file.metadata.name }}
                   small.file-size(v-if="isFinite(file.size)") ({{ humanFileSize(file.size) }})
                 p {{ file.metadata.comment }}
+      .panel-footer.text-center(v-if="showArchiveDownload")
+        a.btn.btn-default(
+          @click="downloadAll"
+          @keydown.enter.prevent="downloadAll"
+          @keydown.space.prevent="downloadAll"
+          role="button"
+          tabindex="0"
+        )
+          icon.fa-fw(name="download")
+          |  {{ $root.lang.zipDownload }} ({{ files.length }} {{ $root.lang.files }}, {{ totalSize }})
 
     preview-modal(:preview="preview", :files="previewFiles", :max-size="config.maxPreviewSize", @close="preview=false")
 
@@ -123,9 +112,16 @@
     },
 
     computed: {
-      downloadsAvailable: function() {
+      showArchiveDownload: function() {
         if (!this.archiveToken) return false;
-        return this.files.filter(f => !f.downloaded || f.metadata.retention !== 'one-time').length > 0
+        if (this.files.length < 2) return false;
+        return this.files.filter(f => !f.downloaded || f.metadata.retention !== 'one-time').length > 0;
+      },
+      totalSize: function() {
+        const sum = this.files
+          .filter(f => this.isFinite(f.size))
+          .reduce((acc, f) => acc + f.size, 0);
+        return this.humanFileSize(sum);
       },
       previewFiles: function() {
         return this.files.filter(f => !!f.previewType);
@@ -150,16 +146,15 @@
         file.downloaded = true;
       },
 
-      async downloadAll(format) {
-        let token = this.archiveToken;
-        if (!token) {
+      async downloadAll() {
+        if (!this.archiveToken) {
           console.error('Archive token not found.');
           return;
         }
         document.location.href = this.$root.baseURI
           + '/files/' + this.sid + '++'
-          + this.archiveToken + '.' + format;
-        this.files.forEach(f => { f.downloaded = true; })
+          + this.archiveToken + '.zip';
+        this.files.forEach(f => { f.downloaded = true; });
       },
 
       copied(file, $event) {

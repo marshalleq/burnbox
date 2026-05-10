@@ -1,0 +1,12 @@
+.idea
+data
+.travis.yml
+screenshots
+tmp
+temp
+node_modules
+app/node_modules
+npm-debug.log
+scripts
+docs
+_releases

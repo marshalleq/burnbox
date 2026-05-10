@@ -1,0 +1,18 @@
+[Unit]
+Description=Burnbox
+Documentation=https://github.com/marshalleq/burnbox
+After=network.target
+
+[Service]
+Type=simple
+User=burnbox
+Restart=on-failure
+
+Environment=NODE_ENV=production
+Environment=BURNBOX_PORT=8080
+
+WorkingDirectory=/opt/burnbox
+ExecStart=/usr/bin/node app.js
+
+[Install]
+WantedBy=multi-user.target

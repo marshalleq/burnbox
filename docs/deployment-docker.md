@@ -10,6 +10,10 @@ docker run -d -v $PWD/data:/data -p 3000:3000 ghcr.io/marshalleq/burnbox
 ```
 
 The data folder must be writable by UID 1000 (`sudo chown -R 1000 $PWD/data`).
+
+A complete, tested `docker run` example (restart policy, both passwords, proxy setting, health check
+and a locked-down container, with every line explained) is in the
+[README](../README.md#a-full-example).
 The above command starts the Burnbox Docker container and 
  * `-d` puts the process into background (daemon mode)
  * `-v` mounts the data volume into the container

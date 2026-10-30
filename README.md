@@ -60,36 +60,70 @@ These are shared passwords, not individual user accounts. A better sign-in is pl
 
 Docker is the easiest way to run Burnbox. The image is built by GitHub after every change and published to the GitHub Container Registry as `ghcr.io/marshalleq/burnbox`. It is public, so no login is needed, and it works on both Intel/AMD (`amd64`) and ARM (`arm64`) machines, including Apple silicon, Raspberry Pi and most NAS boxes. `latest` (and `master`) follow the `master` branch. Once releases are tagged `v1.2.3`, matching `1.2.3` and `1.2` tags will appear too.
 
+#### The shortest way to try it
+
 ```bash
-# A folder for the uploads. The container runs as user 1000, which must be able to write to it.
 mkdir -p data && sudo chown 1000 data
-
-# An admin password (this switches on the /admin page). Keep it somewhere safe.
-# Burnbox refuses to start if a password is empty or a placeholder such as "secret" or "admin".
 export BURNBOX_ADMIN_PASS="$(openssl rand -hex 24)"
-
-# Download the image (Docker does this automatically) and start it.
-docker run -d --name burnbox --restart unless-stopped -p 3000:3000 \
+docker run -d --name burnbox -p 3000:3000 \
   -e BURNBOX_ADMIN_PASS \
   -v "$PWD/data":/data \
   ghcr.io/marshalleq/burnbox:latest
 ```
 
-Then open <http://localhost:3000>. To update later, pull the new image and recreate the container (your uploads stay in the `data` folder):
+Then open <http://localhost:3000>. Docker downloads the image the first time.
+
+#### A full example
+
+This is a complete command with everything most installs want: it restarts by itself, has both passwords, is told it sits behind a reverse proxy, and is locked down. Change the folder, port and time zone to suit.
 
 ```bash
-docker pull ghcr.io/marshalleq/burnbox:latest
-docker rm -f burnbox
-# ...then run the same `docker run` command again
+# 1. A folder for the uploads. The container runs as user 1000, which must be able to write to it.
+mkdir -p /srv/burnbox/data && sudo chown 1000 /srv/burnbox/data
+
+# 2. Two passwords, generated rather than typed. Save them somewhere safe, such as a password manager.
+#    Burnbox refuses to start if a password is empty or a placeholder such as "secret" or "admin".
+export BURNBOX_ADMIN_PASS="$(openssl rand -hex 24)"
+export BURNBOX_UPLOAD_PASS="$(openssl rand -hex 24)"
+echo "admin: $BURNBOX_ADMIN_PASS    upload: $BURNBOX_UPLOAD_PASS"
+
+# 3. Download the image (Docker does this automatically) and start it.
+docker run -d \
+  --name burnbox \
+  --restart unless-stopped \
+  --read-only --tmpfs /tmp \
+  --cap-drop ALL \
+  --security-opt no-new-privileges \
+  --health-cmd 'wget -q -O /dev/null http://127.0.0.1:3000/robots.txt || exit 1' \
+  --health-interval 30s --health-retries 3 \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -p 3000:3000 \
+  -e TZ=Pacific/Auckland \
+  -e BURNBOX_TRUST_PROXY=1 \
+  -e BURNBOX_ADMIN_PASS \
+  -e BURNBOX_UPLOAD_PASS \
+  -v /srv/burnbox/data:/data \
+  ghcr.io/marshalleq/burnbox:latest
 ```
 
-Every setting in [Configuration](#configuration) can be added the same way, with one `-e NAME=value` each. The ones most people want:
+What each part does:
 
-* `-e BURNBOX_UPLOAD_PASS=...` requires a password to upload (downloads stay open).
-* `-e BURNBOX_TRUST_PROXY=1` when a reverse proxy such as nginx is in front of Burnbox.
-* `-e TZ=Pacific/Auckland` for your time zone.
+* `--name burnbox` and `--restart unless-stopped`: a fixed name, and Docker starts it again after a crash or reboot unless you stopped it yourself.
+* `--read-only --tmpfs /tmp`: the container's own filesystem cannot be changed. The only place it can write is `/data`, your uploads folder.
+* `--cap-drop ALL --security-opt no-new-privileges`: the container gets no extra Linux privileges.
+* `--health-cmd ...`: Docker checks every 30 seconds that Burnbox answers, and `docker ps` shows `healthy` or `unhealthy`.
+* `--log-opt ...`: keeps at most three 10 MB log files, so logs cannot fill the disk.
+* `-p 3000:3000`: reach Burnbox on port 3000 of this machine. If a reverse proxy on the same machine is the only thing that should reach it, use `-p 127.0.0.1:3000:3000` instead.
+* `-e TZ=...`: your time zone, so times in the logs and the admin page are right.
+* `-e BURNBOX_TRUST_PROXY=1`: tells Burnbox that one reverse proxy such as nginx is in front, so it sees each visitor's real address. **Remove this line if nothing is in front of Burnbox**, otherwise a visitor could forge their address and dodge the wrong-password limit.
+* `-e BURNBOX_ADMIN_PASS` and `-e BURNBOX_UPLOAD_PASS`: with no `=value`, Docker copies the value from the variables you exported in step 2. The admin password switches on the `/admin` page. The upload password is needed to upload, and downloads stay open. Leave either line out to switch that feature off.
+* `-v /srv/burnbox/data:/data`: where uploads are kept. They survive removing and recreating the container.
 
-To keep passwords out of the command (and out of your shell history), put them in a file only you can read and use `--env-file` instead of the `-e` lines for passwords:
+Any other setting from [Configuration](#configuration) is added the same way, with one more `-e NAME=value` line. Two you may want: `-e BURNBOX_UPLOAD_APP_PATH=/up/` (to put a login on uploads in nginx, see [Running it behind nginx](#running-it-behind-nginx)) and `-e BURNBOX_MAX_FILE_SIZE=...` (a limit in bytes).
+
+#### Keeping passwords out of the command
+
+Instead of the two `export` lines and `-e` lines, put the passwords in a file only you can read and use `--env-file`:
 
 ```bash
 printf 'BURNBOX_ADMIN_PASS=%s\nBURNBOX_UPLOAD_PASS=%s\n' "<admin password>" "<upload password>" > burnbox.env
@@ -101,6 +135,16 @@ docker run -d --name burnbox --restart unless-stopped -p 3000:3000 \
 ```
 
 The file has one `NAME=value` per line, with no quotes. Leave out a line, or leave its value empty, to switch that feature off.
+
+#### Updating
+
+Pull the new image and recreate the container. Your uploads stay in the data folder.
+
+```bash
+docker pull ghcr.io/marshalleq/burnbox:latest
+docker rm -f burnbox
+# ...then run the same `docker run` command again
+```
 
 #### Building the image yourself
 

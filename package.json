@@ -25,7 +25,7 @@
     "cors": "^2.8.5",
     "@node-rs/argon2": "^2.0.2",
     "debug": "^4.3.4",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "fs-promise": "^2.0.3",
     "http-errors": "^2.0.0",
     "method-override": "^3.0.0",

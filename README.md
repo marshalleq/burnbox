@@ -30,8 +30,11 @@ A multi-architecture image (amd64 and arm64) is published to `ghcr.io/marshalleq
 git clone https://github.com/marshalleq/burnbox.git
 cd burnbox
 docker build -t burnbox .
+# Generate a real admin password and keep it somewhere safe. Burnbox refuses to
+# start if a password is empty or a placeholder such as "secret" or "admin".
+export BURNBOX_ADMIN_PASS="$(openssl rand -base64 24)"
 docker run -d --name burnbox -p 3000:3000 \
-  -e BURNBOX_ADMIN_PASS=secret \
+  -e BURNBOX_ADMIN_PASS \
   -v $PWD/data:/data \
   burnbox
 # data volume needs UID 1000
@@ -57,6 +60,8 @@ Environment variables:
 * `BURNBOX_UPLOAD_DIR` — upload directory (defaults to `./data`)
 * `BURNBOX_UPLOAD_PASS` — gate uploads behind a password (recommended for public exposure)
 * `BURNBOX_ADMIN_PASS` — enable `/admin` and set its password
+
+Passwords that are empty or obvious placeholders (`secret`, `password`, `admin` and similar) stop Burnbox from starting, so a copied example cannot go live by accident. Leave a password unset to switch that feature off. `NODE_ENV=dev` is exempt, for local development.
 * `DEBUG=burnbox:*` — enable debug logging
 
 You can also drop a `config.production.js` (or `config.<NODE_ENV>.js`) next to `config.js` to override defaults — see `config.dev.js` for an example.

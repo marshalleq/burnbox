@@ -92,6 +92,23 @@ for (let k in config) {
   }
 }
 
+// Refuse to start with an empty or placeholder password. Unset (false) is fine: it
+// switches the feature off. Local development (NODE_ENV=dev) may use a simple one.
+const PLACEHOLDER_PASSWORDS = [
+  'secret', 'password', 'changeme', 'change-me', 'admin', 'test',
+  'yourpassword', 'yoursecurepassword'
+];
+if (process.env.NODE_ENV !== 'dev') {
+  for (const k of ['adminPass', 'uploadPass']) {
+    const v = config[k];
+    if (v === false || v === null || v === undefined) continue;
+    if (typeof v !== 'string' || v.trim() === '' || PLACEHOLDER_PASSWORDS.includes(v.trim().toLowerCase())) {
+      const envName = 'BURNBOX_' + k.replace(/([A-Z])/g, $1 => '_' + $1).toUpperCase();
+      throw new Error(`Refusing to start: ${ k } is empty or a placeholder. Set ${ envName } to a real secret.`);
+    }
+  }
+}
+
 if (!config.baseUrl.endsWith('/')) config.baseUrl = config.baseUrl + '/';
 if (!config.uploadAppPath.endsWith('/')) config.uploadAppPath = config.uploadAppPath + '/';
 

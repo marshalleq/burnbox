@@ -15,7 +15,7 @@
     "regenerator-runtime": "^0.14.1",
     "tus-js-client": "^2.3.1",
     "uuid": "^11.1.0",
-    "vue": "^2.7.16",
+    "vue": "^3.0.0",
     "vue-awesome": "^4.5.0",
     "vuex": "^3.6.2"
   },

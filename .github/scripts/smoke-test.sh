@@ -61,3 +61,33 @@ if [ "$downloaded" != "$PAYLOAD" ]; then
   exit 1
 fi
 echo "tus upload and download round trip -> OK"
+
+# A placeholder password must stop start-up, not be accepted quietly.
+if out="$(BURNBOX_PORT=3998 BURNBOX_UPLOAD_DIR="$DATA_DIR" BURNBOX_ADMIN_PASS=secret node app.js 2>&1)"; then
+  echo "Burnbox started with the placeholder admin password 'secret'; it should refuse" >&2
+  exit 1
+fi
+if ! grep -q "Refusing to start" <<<"$out"; then
+  echo "Placeholder password failed, but not with the expected message:" >&2
+  echo "$out" >&2
+  exit 1
+fi
+echo "placeholder password refused -> OK"
+
+# With a real admin password: wrong guess is forbidden, right one works.
+ADMIN_PASS="$(openssl rand -hex 16)"
+BURNBOX_PORT=3997 BURNBOX_UPLOAD_DIR="$DATA_DIR" BURNBOX_ADMIN_PASS="$ADMIN_PASS" node app.js >"$LOG.admin" 2>&1 &
+ADMIN_PID=$!
+trap 'kill "$PID" "$ADMIN_PID" 2>/dev/null || true' EXIT
+for _ in $(seq 1 30); do
+  curl -fsS "http://127.0.0.1:3997/robots.txt" >/dev/null 2>&1 && break
+  kill -0 "$ADMIN_PID" 2>/dev/null || { cat "$LOG.admin" >&2; exit 1; }
+  sleep 1
+done
+wrong="$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-passwd: not-the-password' http://127.0.0.1:3997/admin/data.json)"
+right="$(curl -sS -o /dev/null -w '%{http_code}' -H "x-passwd: $ADMIN_PASS" http://127.0.0.1:3997/admin/data.json)"
+if [ "$wrong" != "403" ] || [ "$right" != "200" ]; then
+  echo "Admin password check: wrong=$wrong (want 403), right=$right (want 200)" >&2
+  exit 1
+fi
+echo "admin password check -> OK"

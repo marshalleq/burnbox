@@ -7,20 +7,20 @@ if(!String.prototype.startsWith) {
   };
 }
 
-import Vue from 'vue';
+import { createApp, h } from 'vue';
 import { httpGet } from "./common/util";
 import Download from './Download.vue';
-import Icon from 'vue-awesome/components/Icon'
+import Icon from './common/Icon';
 
-Vue.component('icon', Icon);
-
-new Vue({
-  el: '#download',
-  data: {
-    baseURI: document.head.getElementsByTagName('base')[0].href.replace(/\/$/,''),
-    lang: {},
+const app = createApp({
+  data() {
+    return {
+      baseURI: document.head.getElementsByTagName('base')[0].href.replace(/\/$/,''),
+      lang: {},
+    };
   },
-  async beforeCreate() {
+  render: () => h(Download),
+  async created() {
     // Fetch translations
     try {
       this.lang = await httpGet('lang.json');
@@ -28,8 +28,10 @@ new Vue({
     catch (e) {
       alert(e);
     }
-  },
-  render: h => h(Download)
+  }
 });
+
+app.component('icon', Icon);
+app.mount('#download');
 
 window.BURNBOX_VERSION = BURNBOX_VERSION;

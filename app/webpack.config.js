@@ -40,17 +40,21 @@ module.exports = {
       {
         test: /\.vue$/,
         loader: 'vue-loader',
+        options: {
+          // Keep Vue 2's whitespace handling so spacing between icons and text is unchanged
+          compilerOptions: { whitespace: 'preserve' }
+        }
       },
       {
         test: /\.js$/,
-        exclude: /node_modules\/(?!(vue-awesome|drag-drop)\/).*/,
+        exclude: /node_modules\/(?!drag-drop\/).*/,
         use: {
           loader: 'babel-loader',
           options: {
             presets: [['@babel/preset-env', {
               modules: false,
               useBuiltIns: false,
-              targets: "last 2 versions, ie 11, not dead",
+              targets: "last 2 versions, not ie 11, not dead",
             }]],
           }
         }
@@ -72,7 +76,7 @@ module.exports = {
       {
         test: /\.css$/,
         use: [
-          'vue-style-loader',
+          'style-loader',
           'css-loader',
         ]
       },
@@ -85,15 +89,13 @@ module.exports = {
       }
     ]
   },
-  resolve: {
-    alias: {
-      'vue$': mode !== 'development' ? 'vue/dist/vue.runtime.min.js' : 'vue/dist/vue.runtime.js'
-    }
-  },
   plugins: [
     new VueLoaderPlugin(),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(mode),
+      __VUE_OPTIONS_API__: true,
+      __VUE_PROD_DEVTOOLS__: false,
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
       BURNBOX_VERSION: JSON.stringify(process.env.BURNBOX_VERSION || commitShaId || 'dev')
     }),
   ],

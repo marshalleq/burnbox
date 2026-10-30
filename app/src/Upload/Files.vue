@@ -63,10 +63,6 @@
 
 <script type="text/babel">
   import dragDrop from 'drag-drop';
-  import 'vue-awesome/icons/exclamation-triangle'
-  import 'vue-awesome/icons/plus'
-  import 'vue-awesome/icons/plus-circle'
-  import 'vue-awesome/icons/times'
   import { mapGetters, mapState } from 'vuex';
   import FileIcon from '../common/FileIcon.vue';
   import { humanFileSize } from "./store/upload";

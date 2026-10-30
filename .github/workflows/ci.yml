@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  # Single required check. Keep the job name "ci" stable: branch protection refers to it.
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: app
+
+      - name: Lint (syntax check every server file)
+        run: git ls-files '*.js' ':!:app/*' ':!:public/*' | xargs -n1 node --check
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: app
+
+      - name: Smoke test (server starts and serves its pages)
+        run: .github/scripts/smoke-test.sh

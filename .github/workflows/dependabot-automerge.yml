@@ -1,0 +1,34 @@
+name: Dependabot auto-merge
+
+# Turns on auto-merge for Dependabot patch and minor updates (this includes
+# security updates). GitHub then merges the PR only once the required "ci"
+# check passes. Major updates are never auto-merged: they wait for a human.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: automerge
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for patch and minor updates
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Leave major updates for a human
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        run: echo "Major update ${{ steps.meta.outputs.dependency-names }}: not auto-merging."

@@ -1,5 +1,7 @@
 name: CodeQL
 
+run-name: CodeQL - ${{ github.event.pull_request.title || format('{0} ({1})', github.ref_name, github.event_name) }}
+
 # GitHub's code scanner: reads Burnbox's own JavaScript and Vue code for security bugs.
 # Results appear under Security > Code scanning. This is not a required check; findings
 # are triaged as alerts rather than blocking every merge.

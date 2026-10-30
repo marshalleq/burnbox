@@ -1,5 +1,8 @@
 name: Build and Push Docker Image
 
+# A readable title for each run in the Actions list, so a push does not show two rows with the same name.
+run-name: Docker image - ${{ github.event.pull_request.title || format('{0} ({1})', github.ref_name, github.event_name) }}
+
 on:
   push:
     branches: [main, master, dev]
@@ -152,7 +155,7 @@ jobs:
 
     steps:
       - name: Clean up old package versions
-        uses: snok/container-retention-policy@v3.0.1
+        uses: snok/container-retention-policy@v3.1.0
         with:
           account: ${{ github.repository_owner }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -164,3 +167,7 @@ jobs:
           # tagged images — including semver release tags — are preserved
           # forever so deploys of older releases never break.
           tag-selection: untagged
+          # DRY RUN: only lists what would be deleted. The job used to fail before reaching
+          # that point (v3.0.1 rejected the new GITHUB_TOKEN format), so it has not deleted
+          # anything for a while. Read its log, then remove this line to let it delete.
+          dry-run: true

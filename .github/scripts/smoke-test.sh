@@ -93,13 +93,18 @@ fi
 echo "admin password check -> OK"
 
 # tus preflight (OPTIONS) must still be answered by the wildcard route.
-pre="$(curl -sS -D - -o /dev/null -X OPTIONS "$BASE/files" -H "Tus-Resumable: 1.0.0" | tr -d '\r')"
+pre="$(curl -sS -D - -o /dev/null -X OPTIONS "$BASE/files" -H "Tus-Resumable: 1.0.0" -H "Origin: https://evil.example" | tr -d '\r')"
 if ! grep -qi '^HTTP/[0-9.]* 2' <<<"$pre" || ! grep -qi '^tus-extension:' <<<"$pre"; then
   echo "tus OPTIONS preflight did not return a 2xx with Tus-Extension:" >&2
   echo "$pre" >&2
   exit 1
 fi
-echo "tus preflight -> OK"
+if grep -qi '^access-control-allow-origin:' <<<"$pre"; then
+  echo "CORS headers were sent although CORS is off by default:" >&2
+  echo "$pre" >&2
+  exit 1
+fi
+echo "tus preflight, no CORS by default -> OK"
 
 # Upload two files into one bucket, then download them as a ZIP and check the contents.
 upload() { # sid name content
@@ -127,3 +132,41 @@ if bad or got != want:
     sys.exit(f"ZIP check failed: corrupt={bad} contents={got}")
 print("zip download of two files -> OK")
 PY
+
+# CORS is opt-in: only the listed origin is allowed.
+start_instance() { # port, then VAR=value pairs; sets LAST_PID
+  local port="$1"; shift
+  env "$@" BURNBOX_PORT="$port" BURNBOX_UPLOAD_DIR="$DATA_DIR" node app.js >"$LOG.$port" 2>&1 &
+  LAST_PID=$!
+  EXTRA_PIDS+=("$LAST_PID")
+  for _ in $(seq 1 30); do
+    curl -fsS "http://127.0.0.1:$port/robots.txt" >/dev/null 2>&1 && return 0
+    kill -0 "$LAST_PID" 2>/dev/null || { cat "$LOG.$port" >&2; exit 1; }
+    sleep 1
+  done
+  echo "instance on port $port did not start" >&2; exit 1
+}
+EXTRA_PIDS=()
+trap 'kill "$PID" "$ADMIN_PID" "${EXTRA_PIDS[@]}" 2>/dev/null || true' EXIT
+
+start_instance 3995 BURNBOX_CORS_ORIGIN=https://good.example
+good="$(curl -sS -D - -o /dev/null -X OPTIONS http://127.0.0.1:3995/files -H "Tus-Resumable: 1.0.0" -H "Origin: https://good.example" | tr -d '\r')"
+bad="$(curl -sS -D - -o /dev/null -X OPTIONS http://127.0.0.1:3995/files -H "Tus-Resumable: 1.0.0" -H "Origin: https://evil.example" | tr -d '\r')"
+if ! grep -qi '^access-control-allow-origin: https://good.example' <<<"$good" || grep -qi '^access-control-allow-origin: https://evil.example' <<<"$bad"; then
+  echo "CORS allow-list is wrong. good:" >&2; echo "$good" >&2; echo "evil:" >&2; echo "$bad" >&2
+  exit 1
+fi
+echo "CORS opt-in allows only the listed origin -> OK"
+
+# Wrong passwords are limited per IP; requests with no password are not counted.
+LIMIT_PASS="$(openssl rand -hex 16)"
+start_instance 3994 BURNBOX_ADMIN_PASS="$LIMIT_PASS" BURNBOX_AUTH_FAILURE_LIMIT=3
+LB=http://127.0.0.1:3994
+for _ in 1 2 3 4 5 6; do curl -sS -o /dev/null "$LB/admin/data.json"; done   # no password: not counted
+for i in 1 2 3; do
+  c="$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-passwd: wrong' "$LB/admin/data.json")"
+  [ "$c" = "403" ] || { echo "wrong guess $i returned $c, expected 403" >&2; exit 1; }
+done
+c="$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-passwd: wrong' "$LB/admin/data.json")"
+[ "$c" = "429" ] || { echo "4th wrong guess returned $c, expected 429" >&2; exit 1; }
+echo "wrong-password limit (403 x3, then 429) -> OK"

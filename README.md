@@ -62,6 +62,10 @@ Environment variables:
 * `BURNBOX_ADMIN_PASS` — enable `/admin` and set its password
 
 Passwords that are empty or obvious placeholders (`secret`, `password`, `admin` and similar) stop Burnbox from starting, so a copied example cannot go live by accident. Leave a password unset to switch that feature off. `NODE_ENV=dev` is exempt, for local development.
+* `BURNBOX_TRUST_PROXY` — set when Burnbox sits behind a reverse proxy: `1` for one proxy in front, or an address such as `loopback`. Without it every visitor looks like the proxy, so the limits below would count everyone together.
+* `BURNBOX_AUTH_FAILURE_LIMIT` — wrong passwords allowed per visitor every 15 minutes before requests are refused (default 20). Only wrong guesses count.
+* `BURNBOX_DOWNLOAD_RATE_LIMIT` — file and ZIP downloads allowed per visitor per minute (default 600)
+* `BURNBOX_CORS_ORIGIN` — off by default, because Burnbox's own pages are same-origin. To let another site upload to this instance, set a comma-separated list of origins (or `*` for any)
 * `DEBUG=burnbox:*` — enable debug logging
 
 You can also drop a `config.production.js` (or `config.<NODE_ENV>.js`) next to `config.js` to override defaults — see `config.dev.js` for an example.

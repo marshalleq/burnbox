@@ -67,6 +67,15 @@ const config = {
   "plugins": ['file-downloaded-webhook', 'file-uploaded-webhook'],
   // Disable the QR code button for download url sharing, set to true to disable
   "disableQrCode": false,
+  // Cross-origin uploads are off. Burnbox's own pages are same-origin and need no CORS.
+  // To let another site upload to this instance, set a comma-separated list of origins
+  // (or '*' for any), e.g. BURNBOX_CORS_ORIGIN=https://files.example.com
+  "corsOrigin": false,
+  // Wrong passwords allowed per IP address every 15 minutes before requests are refused.
+  // Behind a reverse proxy, also set trustProxy so each visitor is counted separately.
+  "authFailureLimit": 20,
+  // File and ZIP downloads allowed per IP address per minute.
+  "downloadRateLimit": 600,
 };
 
 // Load NODE_ENV specific config
@@ -106,6 +115,12 @@ if (process.env.NODE_ENV !== 'dev') {
       const envName = 'BURNBOX_' + k.replace(/([A-Z])/g, $1 => '_' + $1).toUpperCase();
       throw new Error(`Refusing to start: ${ k } is empty or a placeholder. Set ${ envName } to a real secret.`);
     }
+  }
+}
+
+for (const k of ['authFailureLimit', 'downloadRateLimit']) {
+  if (!Number.isInteger(config[k]) || config[k] < 1) {
+    throw new Error(`Refusing to start: ${ k } must be a whole number of at least 1, got ${ config[k] }.`);
   }
 }
 

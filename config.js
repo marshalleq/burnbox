@@ -67,6 +67,15 @@ const config = {
   "plugins": ['file-downloaded-webhook', 'file-uploaded-webhook'],
   // Disable the QR code button for download url sharing, set to true to disable
   "disableQrCode": false,
+  // Cross-origin uploads are off. Burnbox's own pages are same-origin and need no CORS.
+  // To let another site upload to this instance, set a comma-separated list of the exact
+  // origins, e.g. BURNBOX_CORS_ORIGIN=https://files.example.com (any origin is not allowed).
+  "corsOrigin": false,
+  // Wrong passwords allowed per IP address every 15 minutes before requests are refused.
+  // Behind a reverse proxy, also set trustProxy so each visitor is counted separately.
+  "authFailureLimit": 20,
+  // File and ZIP downloads allowed per IP address per minute.
+  "downloadRateLimit": 600,
 };
 
 // Load NODE_ENV specific config
@@ -75,20 +84,57 @@ if (process.env.NODE_ENV && fsp.existsSync(envConfFile)) {
   Object.assign(config, require(envConfFile));
 }
 
-// Load config from ENV VARS
-let envName;
-for (let k in config) {
-  envName = 'BURNBOX_' + k.replace(/([A-Z])/g, $1 => "_" + $1).toUpperCase();
-  if (process.env[envName]) {
-    if (typeof config[k] === 'number') {
-      config[k] = parseInt(process.env[envName], 10);
-    } else if (Array.isArray(config[k])) {
-      config[k] = process.env[envName].split(',');
-    } else if (typeof config[k] === 'object') {
-      config[k] = JSON.parse(process.env[envName]);
-    } else {
-      config[k] = process.env[envName];
+// Load config from ENV VARS: BURNBOX_<NAME>, where <NAME> is the setting in UPPER_SNAKE_CASE
+// (adminPass -> BURNBOX_ADMIN_PASS). Environment variables are always text, so each setting
+// is read according to its type. A value that does not fit stops Burnbox with a clear message
+// instead of being guessed at.
+const ENV_BOOLEANS = ['disableQrCode', 'requireBucketPassword'];
+const ENV_NUMBERS = ['port', 'sslPort', 'maxAge', 'maxPreviewSize', 'authFailureLimit', 'downloadRateLimit'];
+const ENV_SIZES = ['maxFileSize', 'maxBucketSize']; // bytes; false means no limit
+const ENV_LISTS = ['plugins'];
+const ENV_JSON = ['retentions'];
+// Text settings that can be switched off by setting them to the word "false".
+const ENV_OFFABLE = [
+  'adminPass', 'uploadPass', 'sslKeyFile', 'sslCertFile', 'corsOrigin', 'accessLog',
+  'forceHttps', 'trustProxy', 'fileDownloadedWebhook', 'fileUploadedWebhook', 'mailTemplate'
+];
+
+function readEnv(k, raw, envName) {
+  const fail = (expected) => {
+    throw new Error(`Refusing to start: ${ envName } must be ${ expected }, but it is "${ raw }".`);
+  };
+  const word = raw.trim().toLowerCase();
+  if (ENV_BOOLEANS.includes(k)) {
+    if (word === 'true') return true;
+    if (word === 'false') return false;
+    return fail('true or false');
+  }
+  if (ENV_NUMBERS.includes(k)) {
+    if (word === 'false' && ['port', 'sslPort'].includes(k)) return false; // switch that listener off
+    return /^\d+$/.test(word) ? parseInt(word, 10) : fail('a whole number' + (['port', 'sslPort'].includes(k) ? ' (or false to switch it off)' : ''));
+  }
+  if (ENV_SIZES.includes(k)) {
+    if (word === 'false') return null;
+    return /^\d+$/.test(word) ? parseInt(word, 10) : fail('a whole number of bytes (or false for no limit)');
+  }
+  if (ENV_LISTS.includes(k)) {
+    return raw.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+  if (ENV_JSON.includes(k)) {
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return fail('valid JSON');
     }
+  }
+  if (ENV_OFFABLE.includes(k) && word === 'false') return false;
+  return raw;
+}
+
+for (const k in config) {
+  const envName = 'BURNBOX_' + k.replace(/([A-Z])/g, $1 => "_" + $1).toUpperCase();
+  if (process.env[envName]) {
+    config[k] = readEnv(k, process.env[envName], envName);
   }
 }
 
@@ -107,6 +153,28 @@ if (process.env.NODE_ENV !== 'dev') {
       throw new Error(`Refusing to start: ${ k } is empty or a placeholder. Set ${ envName } to a real secret.`);
     }
   }
+}
+
+if (config.corsOrigin && String(config.corsOrigin).split(',').some((o) => o.trim() === '*' || o.trim() === 'null')) {
+  throw new Error('Refusing to start: corsOrigin must list exact origins such as https://files.example.com, not * or null.');
+}
+
+for (const k of ['authFailureLimit', 'downloadRateLimit']) {
+  if (!Number.isInteger(config[k]) || config[k] < 1) {
+    throw new Error(`Refusing to start: ${ k } must be a whole number of at least 1, got ${ config[k] }.`);
+  }
+}
+
+for (const key of Object.keys(config.retentions)) {
+  if (key !== 'one-time' && !/^\d+$/.test(key)) {
+    throw new Error(`Refusing to start: retentions key "${ key }" must be a number of seconds or "one-time".`);
+  }
+}
+if (!Object.keys(config.retentions).includes(String(config.defaultRetention))) {
+  throw new Error(
+    `Refusing to start: defaultRetention "${ config.defaultRetention }" is not one of the retentions ` +
+    `(${ Object.keys(config.retentions).join(', ') }).`
+  );
 }
 
 if (!config.baseUrl.endsWith('/')) config.baseUrl = config.baseUrl + '/';

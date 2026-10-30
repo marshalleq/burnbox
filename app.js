@@ -21,11 +21,17 @@ function configureTimeouts(srv) {
   srv.timeout = 0;
 }
 
+// Report the address the socket is really bound to.
+function describeListener(scheme, srv) {
+  const { address, port } = srv.address();
+  return `${ scheme }://${ address.includes(':') ? `[${ address }]` : address }:${ port }`;
+}
+
 let server;
 if(config.port) {
   // HTTP Server
   server = app.listen(config.port, config.iface, () => {
-    console.log(`Burnbox listening on http://${config.iface}:${config.port}`);
+    console.log(`Burnbox listening on ${ describeListener('http', server) }`);
     eventBus.emit('listen', server);
   });
   configureTimeouts(server);
@@ -40,7 +46,7 @@ if(config.sslPort && config.sslKeyFile && config.sslCertFile) {
   };
   httpsServer = https.createServer(sslOpts, app)
     .listen(config.sslPort, config.iface, () => {
-      console.log(`Burnbox listening on https://${config.iface}:${config.sslPort}`);
+      console.log(`Burnbox listening on ${ describeListener('https', httpsServer) }`);
       eventBus.emit('listen', httpsServer);
     });
   configureTimeouts(httpsServer);

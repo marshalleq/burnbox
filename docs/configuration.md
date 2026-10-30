@@ -1,9 +1,9 @@
 # Configuration
 
-First of all, I'll give an overview about the configuration options. See the 
-[config.js](https://github.com/marshalleq/burnbox/blob/master/config.js#L5) for 
-possible values. I do **not** recommend changing this file directly, better use one
-of the following options.
+Every setting, its environment variable, default and effect is listed in the
+[README](../README.md#configuration). This page covers the config-file and environment
+mechanisms in a bit more detail, plus SSL, web hooks and protection. I do **not**
+recommend changing `config.js` directly, better use one of the following options.
 
 ## Config file: NODE_ENV related
 
@@ -38,6 +38,23 @@ node app.js
 * Then it will overwrite `retentions` and `port` with the values of the environment parameters.
 
 > Environment parameters always have the highest priority.
+
+## Passwords and protection
+
+* **Placeholder passwords are refused.** If `adminPass` or `uploadPass` is set but empty, or is an obvious
+  placeholder such as `secret`, `password` or `admin`, Burnbox stops at start-up with a message saying so.
+  Leave a password unset to switch that feature off. `NODE_ENV=dev` is exempt for local development.
+* **Wrong passwords are limited.** `authFailureLimit` (default 20) is how many wrong passwords one visitor may
+  try every 15 minutes on the admin, upload and download-password checks before requests are answered with
+  `429`. Only wrong guesses count: correct passwords, and requests that send no password at all, do not.
+* **Downloads are limited.** `downloadRateLimit` (default 600) is how many file or ZIP downloads one visitor
+  may start per minute.
+* **Behind a reverse proxy, set `trustProxy`.** Without it every visitor looks like the proxy, so the limits
+  above would count everyone together and Burnbox logs a warning. Use the number of proxies in front of
+  Burnbox (`BURNBOX_TRUST_PROXY=1` for one, as in the nginx example) or an address such as `loopback`.
+* **Cross-origin uploads are off.** Burnbox's own pages are same-origin and need no CORS. To let another site
+  upload to this instance, set `corsOrigin` to a comma-separated list of the exact origins, for example
+  `BURNBOX_CORS_ORIGIN=https://files.example.com`. `*` is refused.
 
 ## SSL
 

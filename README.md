@@ -105,6 +105,11 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 
 **Browser support.** The frontend uses Vue 3, which does not support Internet Explorer 11.
 
+## Third-party notices
+
+* Icons are [Font Awesome Free](https://fontawesome.com/license/free) (icons: CC BY 4.0, code: MIT).
+* The stylesheet is a customised build of [Bootstrap](https://getbootstrap.com) 3.3.7 (MIT). Only the CSS is used.
+
 ## License
 
 [BSD-2-Clause](LICENSE)

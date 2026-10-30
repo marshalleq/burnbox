@@ -91,3 +91,39 @@ if [ "$wrong" != "403" ] || [ "$right" != "200" ]; then
   exit 1
 fi
 echo "admin password check -> OK"
+
+# tus preflight (OPTIONS) must still be answered by the wildcard route.
+pre="$(curl -sS -D - -o /dev/null -X OPTIONS "$BASE/files" -H "Tus-Resumable: 1.0.0" | tr -d '\r')"
+if ! grep -qi '^HTTP/[0-9.]* 2' <<<"$pre" || ! grep -qi '^tus-extension:' <<<"$pre"; then
+  echo "tus OPTIONS preflight did not return a 2xx with Tus-Extension:" >&2
+  echo "$pre" >&2
+  exit 1
+fi
+echo "tus preflight -> OK"
+
+# Upload two files into one bucket, then download them as a ZIP and check the contents.
+upload() { # sid name content
+  local len="${#3}" loc
+  loc="$(curl -fsS -D - -o /dev/null -X POST "$BASE/files" \
+    -H "Tus-Resumable: 1.0.0" -H "Upload-Length: $len" \
+    -H "Upload-Metadata: name $(b64 "$2"),sid $(b64 "$1"),retention $(b64 3600)" \
+    | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}')"
+  printf '%s' "$3" | curl -fsS -o /dev/null -X PATCH "$BASE$loc" \
+    -H "Tus-Resumable: 1.0.0" -H "Content-Type: application/offset+octet-stream" \
+    -H "Upload-Offset: 0" -H "Content-Length: $len" --data-binary @-
+}
+upload zipsid a.txt "alpha file"
+upload zipsid b.txt "bravo file"
+TOKEN="$(curl -fsS "$BASE/zipsid.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["archiveToken"])')"
+ZIPFILE="$(mktemp)"
+curl -fsS -o "$ZIPFILE" "$BASE/files/zipsid++$TOKEN.zip"
+python3 - "$ZIPFILE" <<'PY'
+import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1])
+bad = z.testzip()
+got = {n: z.read(n).decode() for n in z.namelist()}
+want = {"a.txt": "alpha file", "b.txt": "bravo file"}
+if bad or got != want:
+    sys.exit(f"ZIP check failed: corrupt={bad} contents={got}")
+print("zip download of two files -> OK")
+PY

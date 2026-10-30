@@ -39,6 +39,23 @@ node app.js
 
 > Environment parameters always have the highest priority.
 
+## Passwords and protection
+
+* **Placeholder passwords are refused.** If `adminPass` or `uploadPass` is set but empty, or is an obvious
+  placeholder such as `secret`, `password` or `admin`, Burnbox stops at start-up with a message saying so.
+  Leave a password unset to switch that feature off. `NODE_ENV=dev` is exempt for local development.
+* **Wrong passwords are limited.** `authFailureLimit` (default 20) is how many wrong passwords one visitor may
+  try every 15 minutes on the admin, upload and download-password checks before requests are answered with
+  `429`. Only wrong guesses count: correct passwords, and requests that send no password at all, do not.
+* **Downloads are limited.** `downloadRateLimit` (default 600) is how many file or ZIP downloads one visitor
+  may start per minute.
+* **Behind a reverse proxy, set `trustProxy`.** Without it every visitor looks like the proxy, so the limits
+  above would count everyone together and Burnbox logs a warning. Use the number of proxies in front of
+  Burnbox (`BURNBOX_TRUST_PROXY=1` for one, as in the nginx example) or an address such as `loopback`.
+* **Cross-origin uploads are off.** Burnbox's own pages are same-origin and need no CORS. To let another site
+  upload to this instance, set `corsOrigin` to a comma-separated list of origins (or `*` for any), for example
+  `BURNBOX_CORS_ORIGIN=https://files.example.com`.
+
 ## SSL
 
 It's recommended to use Nginx for SSL termination, see [nginx-ssl-example.conf](https://github.com/marshalleq/burnbox/blob/master/docs/nginx-ssl-example.conf).

@@ -10,11 +10,12 @@ use Systemd as main init system. You should **not** run Burnbox with root privil
 mkdir -p /opt/burnbox
 cd /opt/burnbox
 
-# Download and extract a prebuild
-curl -sL https://github.com/marshalleq/burnbox/releases/download/1.1.0-beta/burnbox-1.1.0-beta.tar.gz | tar xz --strip 1
+# Get the code (needs git and Node 26 or newer, check with: node -v)
+git clone https://github.com/marshalleq/burnbox.git .
 
-# Install dependencies
-npm install --production
+# Build the frontend, then install the server's runtime dependencies
+(cd app && npm ci && npm run build)
+npm ci --omit=dev
 
 # Add a user burnbox
 sudo useradd --system burnbox
@@ -22,6 +23,11 @@ sudo useradd --system burnbox
 # Make burnbox owner of /opt/burnbox
 sudo chown -R burnbox:burnbox /opt/burnbox 
 ```
+
+The sample unit file runs `/usr/bin/node`. If your distribution's Node is older than 26,
+point `ExecStart` at the right binary. To set an admin or upload password, put
+`BURNBOX_ADMIN_PASS=...` in a file readable only by root and reference it with
+`EnvironmentFile=` in the unit. Burnbox refuses to start with a placeholder password.
 
 **Systemd unit file**
 

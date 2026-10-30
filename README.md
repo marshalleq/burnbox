@@ -16,7 +16,7 @@ Recipients rarely confirm a download. Burnbox doesn't ask: every drop has an exp
 * Password-protected download lists (Argon2 hashed, AES bucket encryption)
 * ZIP archive download for whole buckets (offered when a bucket has more than one file)
 * Direct per-file download button
-* Mobile-friendly Vue.js frontend (~100k gzipped)
+* Mobile-friendly Vue 3 frontend
 * `/admin` page (gated by `BURNBOX_ADMIN_PASS`)
 * Modern runtime: Node 26 (LTS), native Web Crypto, Argon2 password hashing
 
@@ -97,9 +97,8 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 | Package | Override | Reason |
 |---|---|---|
 | `sockjs` (via `webpack-dev-server`) | `uuid ^11.1.1` | Old `uuid` copy has an advisory; development server only. |
-| `@vue/component-compiler-utils` (via `vue-loader`) | `postcss ^8.5.32` | Old `postcss` copy has an advisory; build time only. |
 
-**Known open item.** `vue-template-compiler` has an advisory with no upstream fix because Vue 2 is end of life. It is used at build time only and is not part of the shipped image.
+**Browser support.** The frontend uses Vue 3, which does not support Internet Explorer 11.
 
 ## License
 

@@ -96,6 +96,8 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 * Minor and patch updates are grouped into one pull request per area. They are merged automatically once `ci` passes (`.github/workflows/dependabot-automerge.yml`).
 * Major updates are never merged automatically. They stay open as pull requests until someone has tested and decided on them.
 * The image is rebuilt from scratch every Sunday so that base-image security fixes are picked up even when no code has changed.
+* **Daily advisory watch** (`.github/workflows/advisory-watch.yml`). Dependabot only knows GitHub's reviewed advisory list, so each day this also checks advisories that the upstream libraries publish in their own repositories, Node.js core vulnerabilities against the Node version in the published image, and any dependency licence that is not on the allow-list. If something applies it opens (and keeps up to date) one issue titled "Advisory watch: findings that apply to Burnbox", and closes it when nothing applies. If a check cannot run, the job fails rather than reporting all clear.
+* **CodeQL** (`.github/workflows/codeql.yml`) scans Burnbox's own JavaScript and Vue code for security bugs on every push and pull request, and weekly. Results appear under Security, then Code scanning.
 
 **Pinned or overridden dependencies.** These exist only to clear security advisories in build-time tooling. Remove them once the upstream packages catch up.
 

@@ -1,0 +1,42 @@
+name: CodeQL
+
+# GitHub's code scanner: reads Burnbox's own JavaScript and Vue code for security bugs.
+# Results appear under Security > Code scanning. This is not a required check; findings
+# are triaged as alerts rather than blocking every merge.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '23 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          config: |
+            paths-ignore:
+              - public/assets
+              - public/app
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript

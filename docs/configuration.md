@@ -56,13 +56,13 @@ For the sake of integrating Burnbox with other systems, Burnbox can notify a web
 
 On completion of a file upload, if `fileUploadedWebhook` is set in `config.<NODE_ENV>.js`, Burnbox will make a POST request to that url.
 
-At the time of writing, the POST body will contain a data structure resembling this (serialized as json):
+At the time of writing, the POST body will contain a data structure resembling this (serialized as json). Passwords are never sent: if the file is password protected, `_password` is `true` and there is no `password` field.
 ```json
 {
   "metadata": {
     "sid": "6055ab792b6c",
     "retention": 3600,
-    "password": "file password is in plaintext here",
+    "_password": true,
     "name": "test.png",
     "comment": "User individual file comment goes here",
     "type": "image/png",
@@ -74,7 +74,7 @@ At the time of writing, the POST body will contain a data structure resembling t
 ```
 
 * Note: this event will fire many times if a user uploads multiple files in a single session (`sid`), as each individual file is uploaded separately. You'll notice that the `sid` will remain the same, but the `key` will change for each file. 
-  * For file sync purposes (e.g. syncing client uploads to another service or long-term storage), you can reassemble a file fetch url with `https://<BURNBOX_HOST>/${sid}++${key}`
+  * For file sync purposes (e.g. syncing client uploads to another service or long-term storage), you can reassemble a file fetch url with `https://<BURNBOX_HOST>/files/${sid}++${key}`
 
 ### fileDownloaded
 

@@ -1,0 +1,66 @@
+name: Advisory watch
+
+# Dependabot only knows GitHub's reviewed advisory list. This checks, every day:
+#  - advisories the upstream libraries publish in their own repositories,
+#  - Node.js core vulnerabilities against the Node version in the published image,
+#  - licences that are not on the allow-list.
+# It keeps one open issue up to date while something applies and closes it when
+# nothing does. If a check cannot run, the job fails (so GitHub tells you) instead
+# of reporting "all clear".
+
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  packages: read
+
+jobs:
+  watch:
+    name: watch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install semver for the check script
+        run: npm install --prefix "$RUNNER_TEMP/tools" semver@7 --no-audit --no-fund
+
+      - name: Find the Node.js version in the published image
+        id: node
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          docker pull --quiet "$image"
+          echo "version=$(docker run --rm "$image" node -v)" >> "$GITHUB_OUTPUT"
+
+      - name: Run the checks
+        run: node .github/scripts/check-advisories.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SEMVER_FROM: ${{ runner.temp }}/tools/node_modules/semver
+          OUTPUT_FILE: ${{ runner.temp }}/findings.md
+          NODE_VERSION: ${{ steps.node.outputs.version }}
+
+      - name: Open, update or close the tracking issue
+        run: |
+          title="Advisory watch: findings that apply to Burnbox"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
+          if [ -s "$RUNNER_TEMP/findings.md" ]; then
+            if [ -n "$existing" ]; then
+              gh issue edit "$existing" --body-file "$RUNNER_TEMP/findings.md"
+            else
+              gh issue create --title "$title" --body-file "$RUNNER_TEMP/findings.md"
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" --comment "The daily check ran and nothing applies any more."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

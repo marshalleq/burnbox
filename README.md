@@ -101,6 +101,11 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 
 **Known open item.** `vue-template-compiler` has an advisory with no upstream fix because Vue 2 is end of life. It is used at build time only and is not part of the shipped image.
 
+## Third-party notices
+
+* Icons are [Font Awesome Free](https://fontawesome.com/license/free) (icons: CC BY 4.0, code: MIT).
+* The stylesheet is a customised build of [Bootstrap](https://getbootstrap.com) 3.3.7 (MIT). Only the CSS is used.
+
 ## License
 
 [BSD-2-Clause](LICENSE)

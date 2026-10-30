@@ -192,8 +192,8 @@ export default {
                 }
               }
               // Client Error
-              else if (error && error.originalResponse && error.originalResponse._xhr &&
-                error.originalResponse._xhr.status >= 400 && error.originalResponse._xhr.status < 500) {
+              else if (error && error.originalResponse &&
+                error.originalResponse.getStatus() >= 400 && error.originalResponse.getStatus() < 500) {
                 commit('UPDATE_FILE', {
                   file, data: {
                     error: jsonResMessage || error.message || error.toString()

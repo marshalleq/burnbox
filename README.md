@@ -58,21 +58,62 @@ These are shared passwords, not individual user accounts. A better sign-in is pl
 
 ### Docker
 
-A multi-architecture image (amd64 and arm64) is published to `ghcr.io/marshalleq/burnbox`: `latest` follows `master`, and release tags follow `v*` tags. To build it yourself instead:
+Docker is the easiest way to run Burnbox. The image is built by GitHub after every change and published to the GitHub Container Registry as `ghcr.io/marshalleq/burnbox`. It is public, so no login is needed, and it works on both Intel/AMD (`amd64`) and ARM (`arm64`) machines, including Apple silicon, Raspberry Pi and most NAS boxes. `latest` (and `master`) follow the `master` branch. Once releases are tagged `v1.2.3`, matching `1.2.3` and `1.2` tags will appear too.
+
+```bash
+# A folder for the uploads. The container runs as user 1000, which must be able to write to it.
+mkdir -p data && sudo chown 1000 data
+
+# An admin password (this switches on the /admin page). Keep it somewhere safe.
+# Burnbox refuses to start if a password is empty or a placeholder such as "secret" or "admin".
+export BURNBOX_ADMIN_PASS="$(openssl rand -hex 24)"
+
+# Download the image (Docker does this automatically) and start it.
+docker run -d --name burnbox --restart unless-stopped -p 3000:3000 \
+  -e BURNBOX_ADMIN_PASS \
+  -v "$PWD/data":/data \
+  ghcr.io/marshalleq/burnbox:latest
+```
+
+Then open <http://localhost:3000>. To update later, pull the new image and recreate the container (your uploads stay in the `data` folder):
+
+```bash
+docker pull ghcr.io/marshalleq/burnbox:latest
+docker rm -f burnbox
+# ...then run the same `docker run` command again
+```
+
+Every setting in [Configuration](#configuration) can be added the same way, with one `-e NAME=value` each. The ones most people want:
+
+* `-e BURNBOX_UPLOAD_PASS=...` requires a password to upload (downloads stay open).
+* `-e BURNBOX_TRUST_PROXY=1` when a reverse proxy such as nginx is in front of Burnbox.
+* `-e TZ=Pacific/Auckland` for your time zone.
+
+To keep passwords out of the command (and out of your shell history), put them in a file only you can read and use `--env-file` instead of the `-e` lines for passwords:
+
+```bash
+printf 'BURNBOX_ADMIN_PASS=%s\nBURNBOX_UPLOAD_PASS=%s\n' "<admin password>" "<upload password>" > burnbox.env
+chmod 600 burnbox.env
+docker run -d --name burnbox --restart unless-stopped -p 3000:3000 \
+  --env-file burnbox.env \
+  -v "$PWD/data":/data \
+  ghcr.io/marshalleq/burnbox:latest
+```
+
+The file has one `NAME=value` per line, with no quotes. Leave out a line, or leave its value empty, to switch that feature off.
+
+#### Building the image yourself
 
 ```bash
 git clone https://github.com/marshalleq/burnbox.git
 cd burnbox
 docker build -t burnbox .
-# Generate a real admin password and keep it somewhere safe. Burnbox refuses to
-# start if a password is empty or a placeholder such as "secret" or "admin".
-export BURNBOX_ADMIN_PASS="$(openssl rand -base64 24)"
+mkdir -p data && sudo chown 1000 data
+export BURNBOX_ADMIN_PASS="$(openssl rand -hex 24)"
 docker run -d --name burnbox -p 3000:3000 \
   -e BURNBOX_ADMIN_PASS \
-  -v $PWD/data:/data \
+  -v "$PWD/data":/data \
   burnbox
-# data volume needs UID 1000
-sudo chown -R 1000 $PWD/data
 ```
 
 ### Node (manual)

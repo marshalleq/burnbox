@@ -52,9 +52,8 @@ node app.js
 * **Behind a reverse proxy, set `trustProxy`.** Without it every visitor looks like the proxy, so the limits
   above would count everyone together and Burnbox logs a warning. Use the number of proxies in front of
   Burnbox (`BURNBOX_TRUST_PROXY=1` for one, as in the nginx example) or an address such as `loopback`.
-* **Cross-origin uploads are off.** Burnbox's own pages are same-origin and need no CORS. To let another site
-  upload to this instance, set `corsOrigin` to a comma-separated list of the exact origins, for example
-  `BURNBOX_CORS_ORIGIN=https://files.example.com`. `*` is refused.
+* **No CORS.** Burnbox sends no cross-origin (CORS) headers, because its own pages are same-origin. If another
+  website must be allowed to upload to it, add the headers in your reverse proxy.
 
 ## SSL
 

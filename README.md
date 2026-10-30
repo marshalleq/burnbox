@@ -117,7 +117,7 @@ How an environment variable is read depends on the setting:
 * **On/off settings** take `true` or `false`.
 * **Lists** (`plugins`) are separated by commas.
 * **`retentions`** is JSON.
-* **Settings that can be off** (passwords, the HTTPS files, `corsOrigin`, `accessLog`, `forceHttps`, `trustProxy`, the webhooks and `mailTemplate`) are switched off with the word `false`. `port` and `sslPort` can too, and `maxFileSize` and `maxBucketSize` mean "no limit" when set to `false`.
+* **Settings that can be off** (passwords, the HTTPS files, `accessLog`, `forceHttps`, `trustProxy`, the webhooks and `mailTemplate`) are switched off with the word `false`. `port` and `sslPort` can too, and `maxFileSize` and `maxBucketSize` mean "no limit" when set to `false`.
 * **A value that does not fit stops Burnbox at start-up** with a message naming the variable, rather than being guessed at.
 
 ### Where and how Burnbox listens
@@ -146,9 +146,10 @@ Passwords that are set but empty, or obvious placeholders (`secret`, `password`,
 | `requireBucketPassword` | `BURNBOX_REQUIRE_BUCKET_PASSWORD` | `false` | When `true`, every upload must set a download password. Enforced by the server, not only the upload page. |
 | `authFailureLimit` | `BURNBOX_AUTH_FAILURE_LIMIT` | `20` | How many wrong passwords one visitor may try every 15 minutes (admin, upload and download passwords) before further requests are refused with a `429` response. Only wrong guesses count: correct passwords, and requests that send no password at all, do not. |
 | `downloadRateLimit` | `BURNBOX_DOWNLOAD_RATE_LIMIT` | `600` | File and ZIP downloads one visitor may start per minute. |
-| `corsOrigin` | `BURNBOX_CORS_ORIGIN` | off | Burnbox's own pages need no cross-origin access, so it is off. To let another website upload to this instance, set a comma-separated list of the exact origins (for example `https://files.example.com`). Allowing every origin (`*`) is deliberately not possible and stops Burnbox from starting. |
 
 Download passwords are stored as Argon2 hashes.
+
+Burnbox sends no CORS headers, because its own pages are same-origin. If another website must be allowed to upload to it, add the headers in your reverse proxy.
 
 ### Uploads and expiry
 
@@ -206,7 +207,7 @@ The repository looks after its own dependencies and only asks for a human when a
 3. Syntax-checks every server file.
 4. Checks that this README documents every setting in `config.js`.
 5. Builds the frontend.
-6. Smoke-tests the server (`.github/scripts/smoke-test.sh`): starts it, loads each page, uploads and downloads files over tus, checks a two-file ZIP, the password rules, the wrong-password limit, CORS, and that environment variables are read correctly and bad ones are refused.
+6. Smoke-tests the server (`.github/scripts/smoke-test.sh`): starts it, loads each page, uploads and downloads files over tus, checks a two-file ZIP, the password rules, the wrong-password limit, that no CORS headers are sent, and that environment variables are read correctly and bad ones are refused.
 
 The Docker image is only built and pushed if `ci` passes. `master` is protected: the `ci / ci` check must pass before a change merges, and force-pushes and deletion are blocked. Repository admins are not forced to follow the check, so a broken `master` can still be repaired directly.
 

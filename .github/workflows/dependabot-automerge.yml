@@ -1,5 +1,7 @@
 name: Dependabot auto-merge
 
+run-name: Auto-merge - ${{ github.event.pull_request.title }}
+
 # Turns on auto-merge for Dependabot patch and minor updates (this includes
 # security updates). GitHub then merges the PR only once the required "ci"
 # check passes. Major updates are never auto-merged: they wait for a human.

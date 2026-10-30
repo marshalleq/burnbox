@@ -67,10 +67,6 @@ const config = {
   "plugins": ['file-downloaded-webhook', 'file-uploaded-webhook'],
   // Disable the QR code button for download url sharing, set to true to disable
   "disableQrCode": false,
-  // Cross-origin uploads are off. Burnbox's own pages are same-origin and need no CORS.
-  // To let another site upload to this instance, set a comma-separated list of the exact
-  // origins, e.g. BURNBOX_CORS_ORIGIN=https://files.example.com (any origin is not allowed).
-  "corsOrigin": false,
   // Wrong passwords allowed per IP address every 15 minutes before requests are refused.
   // Behind a reverse proxy, also set trustProxy so each visitor is counted separately.
   "authFailureLimit": 20,
@@ -95,7 +91,7 @@ const ENV_LISTS = ['plugins'];
 const ENV_JSON = ['retentions'];
 // Text settings that can be switched off by setting them to the word "false".
 const ENV_OFFABLE = [
-  'adminPass', 'uploadPass', 'sslKeyFile', 'sslCertFile', 'corsOrigin', 'accessLog',
+  'adminPass', 'uploadPass', 'sslKeyFile', 'sslCertFile', 'accessLog',
   'forceHttps', 'trustProxy', 'fileDownloadedWebhook', 'fileUploadedWebhook', 'mailTemplate'
 ];
 
@@ -155,8 +151,13 @@ if (process.env.NODE_ENV !== 'dev') {
   }
 }
 
-if (config.corsOrigin && String(config.corsOrigin).split(',').some((o) => o.trim() === '*' || o.trim() === 'null')) {
-  throw new Error('Refusing to start: corsOrigin must list exact origins such as https://files.example.com, not * or null.');
+// Burnbox sends no CORS headers: its own pages are same-origin. Anyone who set the old
+// opt-in is told, rather than having it silently ignored.
+if ('corsOrigin' in config || process.env.BURNBOX_CORS_ORIGIN) {
+  throw new Error(
+    'Refusing to start: the corsOrigin setting (BURNBOX_CORS_ORIGIN) has been removed. Burnbox sends no CORS ' +
+    'headers. If another website must upload to it, add the headers in your reverse proxy instead.'
+  );
 }
 
 for (const k of ['authFailureLimit', 'downloadRateLimit']) {

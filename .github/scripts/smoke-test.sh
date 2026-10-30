@@ -100,11 +100,11 @@ if ! grep -qi '^HTTP/[0-9.]* 2' <<<"$pre" || ! grep -qi '^tus-extension:' <<<"$p
   exit 1
 fi
 if grep -qi '^access-control-allow-origin:' <<<"$pre"; then
-  echo "CORS headers were sent although CORS is off by default:" >&2
+  echo "CORS headers were sent, but Burnbox sends none:" >&2
   echo "$pre" >&2
   exit 1
 fi
-echo "tus preflight, no CORS by default -> OK"
+echo "tus preflight, no CORS headers -> OK"
 
 # Upload two files into one bucket, then download them as a ZIP and check the contents.
 upload() { # sid name content
@@ -133,7 +133,7 @@ if bad or got != want:
 print("zip download of two files -> OK")
 PY
 
-# CORS is opt-in: only the listed origin is allowed.
+# Helper to start extra instances on other ports.
 start_instance() { # port, then VAR=value pairs; sets LAST_PID
   local port="$1"; shift
   env "$@" BURNBOX_PORT="$port" BURNBOX_UPLOAD_DIR="$DATA_DIR" node app.js >"$LOG.$port" 2>&1 &
@@ -148,15 +148,6 @@ start_instance() { # port, then VAR=value pairs; sets LAST_PID
 }
 EXTRA_PIDS=()
 trap 'kill "$PID" "$ADMIN_PID" "${EXTRA_PIDS[@]}" 2>/dev/null || true' EXIT
-
-start_instance 3995 BURNBOX_CORS_ORIGIN=https://good.example
-good="$(curl -sS -D - -o /dev/null -X OPTIONS http://127.0.0.1:3995/files -H "Tus-Resumable: 1.0.0" -H "Origin: https://good.example" | tr -d '\r')"
-bad="$(curl -sS -D - -o /dev/null -X OPTIONS http://127.0.0.1:3995/files -H "Tus-Resumable: 1.0.0" -H "Origin: https://evil.example" | tr -d '\r')"
-if ! grep -qi '^access-control-allow-origin: https://good.example' <<<"$good" || grep -qi '^access-control-allow-origin: https://evil.example' <<<"$bad"; then
-  echo "CORS allow-list is wrong. good:" >&2; echo "$good" >&2; echo "evil:" >&2; echo "$bad" >&2
-  exit 1
-fi
-echo "CORS opt-in allows only the listed origin -> OK"
 
 # Wrong passwords are limited per IP; requests with no password are not counted.
 LIMIT_PASS="$(openssl rand -hex 16)"
@@ -211,7 +202,7 @@ refuses "BURNBOX_MAX_FILE_SIZE must be a whole number of bytes" BURNBOX_MAX_FILE
 refuses "BURNBOX_DISABLE_QR_CODE must be true or false" BURNBOX_DISABLE_QR_CODE=maybe
 refuses "BURNBOX_RETENTIONS must be valid JSON" BURNBOX_RETENTIONS='{bad'
 refuses "defaultRetention" BURNBOX_DEFAULT_RETENTION=12345
-refuses "exact origins" BURNBOX_CORS_ORIGIN='*'
+refuses "has been removed" BURNBOX_CORS_ORIGIN=https://files.example.com
 echo "bad environment values refused -> OK"
 
 start_instance 3991 \

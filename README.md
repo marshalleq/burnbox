@@ -313,7 +313,7 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 
 **Browser support.** The frontend uses Vue 3, which does not support Internet Explorer 11.
 
-I'd been meaning to build something like this for years - however, the original credit for this work goes to the author of psitransfer where this code base was originally forked from.  Creative differences around confusing download options led me to rewrite this to be a simpler to operate yet more comprehensive solution than I think suits the needs of people better.  Extensive security efforts have also been undertaken to improve the code base including upgrading to latest versions of the libraries and packages and automating critical security fixes.  I trust you will find a good use for this tool and you are welcome to contribute to it, or fork for you own use as you see fit.
+I'd been meaning to build something like this for years - however, the original credit for this work goes to the author of psitransfer where this code base was originally forked from.  Creative differences around confusing download options led me to rewrite this to be a simpler to operate yet more comprehensive solution that I think suits the needs of people better.  Extensive security efforts have also been undertaken to improve the code base including upgrading to latest versions of the libraries and packages and automating critical security fixes.  I trust you will find a good use for this tool and you are welcome to contribute to it, or fork for you own use as you see fit.
 
 ## Third-party notices
 

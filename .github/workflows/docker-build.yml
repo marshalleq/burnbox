@@ -157,7 +157,9 @@ jobs:
       - name: Clean up old package versions
         uses: snok/container-retention-policy@v3.1.0
         with:
-          account: ${{ github.repository_owner }}
+          # The action needs the word "user" for a personal account (GitHub's package API
+          # has different endpoints for users and organisations) and the name for an organisation.
+          account: ${{ github.event.repository.owner.type == 'User' && 'user' || github.repository_owner }}
           token: ${{ secrets.GITHUB_TOKEN }}
           image-names: ${{ github.event.repository.name }}
           cut-off: 7d

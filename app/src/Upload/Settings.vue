@@ -39,7 +39,6 @@
 
 <script type="text/babel">
   import { mapState } from 'vuex';
-  import 'vue-awesome/icons/key';
 
   const passGen = {
     _pattern: /[A-Z0-9_\-+!]/,

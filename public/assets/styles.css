@@ -80,6 +80,14 @@ h1 .fa-icon {
 .btn .fa-icon {
   vertical-align: middle;
 }
+/* Icons come from Font Awesome, which sets fill="currentColor" on each path.
+   Let paths inherit the svg's fill so the colour rules below still apply. */
+svg.fa-icon {
+  fill: currentColor;
+}
+svg.fa-icon path {
+  fill: inherit;
+}
 
 
 /* FileIcon Component */

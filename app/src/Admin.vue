@@ -33,24 +33,24 @@
               td
                 | {{ sid }}
                 icon.pull-right(name="key", v-if="sum[sid].password", title="Password protected")
-              td {{ sum[sid].created | date }}
+              td {{ $date(sum[sid].created) }}
               td
-                template(v-if="sum[sid].lastDownload") {{ sum[sid].lastDownload | date}}
+                template(v-if="sum[sid].lastDownload") {{ $date(sum[sid].lastDownload) }}
                 template(v-else="") -
               td
-                template(v-if="typeof sum[sid].firstExpire === 'number'") {{ sum[sid].firstExpire | date }}
+                template(v-if="typeof sum[sid].firstExpire === 'number'") {{ $date(sum[sid].firstExpire) }}
                 template(v-else)  {{ sum[sid].firstExpire }}
               td.text-right {{ humanFileSize(sum[sid].size) }}
           tbody.expanded(v-if="expand === sid")
             template(v-for="file in bucket")
               tr.file
                 td {{ file.metadata.name }}
-                td {{+file.metadata.createdAt | date}}
+                td {{ $date(+file.metadata.createdAt) }}
                 td
-                  template(v-if="file.metadata.lastDownload") {{ +file.metadata.lastDownload | date}}
+                  template(v-if="file.metadata.lastDownload") {{ $date(+file.metadata.lastDownload) }}
                   template(v-else="") -
                 td
-                  template(v-if="typeof file.expireDate === 'number'") {{ file.expireDate | date }}
+                  template(v-if="typeof file.expireDate === 'number'") {{ $date(file.expireDate) }}
                   template(v-else) {{ file.expireDate }}
                 td.text-right {{ humanFileSize(file.size) }}
         tfoot
@@ -62,10 +62,6 @@
 
 
 <script>
-  import 'vue-awesome/icons/exclamation-triangle';
-  import 'vue-awesome/icons/sync-alt';
-  import 'vue-awesome/icons/sign-in-alt';
-  import 'vue-awesome/icons/key';
 
 
   export default {
@@ -146,7 +142,7 @@
             }
           });
           this.sizeSum += bucketSum.size;
-          this.$set(this.sum, sid, bucketSum);
+          this.sum[sid] = bucketSum;
         });
       },
 

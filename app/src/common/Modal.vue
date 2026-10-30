@@ -15,6 +15,8 @@
 
 <script>
   export default {
+    emits: ['close', 'next', 'prev'],
+
     props: {
       hasHeader: {
         type: Boolean,

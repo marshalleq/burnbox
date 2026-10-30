@@ -170,3 +170,30 @@ done
 c="$(curl -sS -o /dev/null -w '%{http_code}' -H 'x-passwd: wrong' "$LB/admin/data.json")"
 [ "$c" = "429" ] || { echo "4th wrong guess returned $c, expected 429" >&2; exit 1; }
 echo "wrong-password limit (403 x3, then 429) -> OK"
+
+# A correct password that meets other errors must never count towards the limit.
+UP_PASS="$(openssl rand -hex 16)"
+start_instance 3993 BURNBOX_UPLOAD_PASS="$UP_PASS" BURNBOX_AUTH_FAILURE_LIMIT=3
+for _ in 1 2 3 4 5 6; do
+  # valid password, but no upload metadata, so the server answers 400
+  curl -sS -o /dev/null -X POST http://127.0.0.1:3993/files -H "x-passwd: $UP_PASS" -H "Tus-Resumable: 1.0.0" -H "Upload-Length: 1"
+done
+c="$(curl -sS -o /dev/null -w '%{http_code}' -H "x-passwd: $UP_PASS" http://127.0.0.1:3993/config.json)"
+[ "$c" = "200" ] || { echo "correct password was locked out after harmless 4xx errors (got $c)" >&2; exit 1; }
+echo "correct password is not locked out by other 4xx errors -> OK"
+
+# Trusting every proxy hop must be loud; an explicit hop count must not be overridden by forceHttps.
+for combo in "BURNBOX_FORCE_HTTPS=true" "BURNBOX_FORCE_HTTPS=true BURNBOX_TRUST_PROXY=1"; do
+  wlog="$(mktemp)"
+  # shellcheck disable=SC2086
+  env $combo BURNBOX_PORT=3992 BURNBOX_UPLOAD_DIR="$DATA_DIR" node app.js >"$wlog" 2>&1 &
+  wpid=$!
+  for _ in $(seq 1 20); do grep -q "listening" "$wlog" && break; sleep 1; done
+  kill "$wpid" 2>/dev/null || true; wait "$wpid" 2>/dev/null || true
+  warned="$(grep -c 'trusts every X-Forwarded-For hop' "$wlog" || true)"
+  case "$combo" in
+    *TRUST_PROXY=1*) [ "$warned" = "0" ] || { echo "warned although BURNBOX_TRUST_PROXY=1 was set" >&2; exit 1; } ;;
+    *) [ "$warned" = "1" ] || { echo "no warning although every proxy hop is trusted" >&2; cat "$wlog" >&2; exit 1; } ;;
+  esac
+done
+echo "trust-proxy warning and forceHttps handling -> OK"

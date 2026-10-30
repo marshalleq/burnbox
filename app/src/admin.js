@@ -1,6 +1,6 @@
-import Vue from 'vue';
+import { createApp, h } from 'vue';
 import Admin from './Admin.vue';
-import Icon from 'vue-awesome/components/Icon'
+import Icon from './common/Icon';
 
 function parseDate(str) {
   if(!str) return str;
@@ -18,21 +18,25 @@ function isDate(d) {
   return Object.prototype.toString.call(d) === '[object Date]';
 }
 
-Vue.filter('date', function(val, format) {
+// Vue 3 has no filters: expose the formatter as a global template method instead.
+function formatDateValue(val, format) {
   if(!isDate(val)) {
     val = parseDate(val);
   }
   return isDate(val) ? formatDate(val, format) : val;
-});
+}
 
-Vue.component('icon', Icon);
-
-new Vue({
-  el: '#admin',
-  data: {
-    baseURI: document.head.getElementsByTagName('base')[0].href
+const app = createApp({
+  data() {
+    return {
+      baseURI: document.head.getElementsByTagName('base')[0].href
+    };
   },
-  render: h => h(Admin)
+  render: () => h(Admin)
 });
+
+app.component('icon', Icon);
+app.config.globalProperties.$date = formatDateValue;
+app.mount('#admin');
 
 window.BURNBOX_VERSION = BURNBOX_VERSION;

@@ -88,13 +88,6 @@
   import Settings from './Upload/Settings.vue';
   import Files from './Upload/Files.vue';
   import Clipboard from './common/Clipboard.vue'
-  import 'vue-awesome/icons/cloud-upload-alt';
-  import 'vue-awesome/icons/upload';
-  import 'vue-awesome/icons/check';
-  import 'vue-awesome/icons/spinner';
-  import 'vue-awesome/icons/envelope';
-  import 'vue-awesome/icons/qrcode';
-  import 'vue-awesome/icons/exclamation-triangle';
   import { humanFileSize } from "./Upload/store/upload";
 
 

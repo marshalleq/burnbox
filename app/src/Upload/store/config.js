@@ -1,5 +1,3 @@
-import Vue from 'vue';
-
 export default {
   namespaced: true,
 
@@ -12,7 +10,7 @@ export default {
   mutations: {
     SET(state, val) {
       for (let k in val) {
-        Vue.set(state, k, val[k]);
+        state[k] = val[k];
       }
     }
   },

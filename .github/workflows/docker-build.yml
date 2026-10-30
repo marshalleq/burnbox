@@ -145,15 +145,29 @@ jobs:
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
   # ── Clean up old versions ─────────────────────────────────────────
+  # Deletes superseded, untagged image versions older than 7 days. Tagged images are never
+  # selected, and the action protects the pieces of tagged multi-architecture images. A
+  # failure here is deliberately not hidden: the images are already published, so it cannot
+  # block a release, but it should be seen.
   cleanup:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: merge
-    continue-on-error: true
     permissions:
+      contents: read
       packages: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Clean up old package versions
         uses: snok/container-retention-policy@v3.1.0
         with:
@@ -169,7 +183,11 @@ jobs:
           # tagged images — including semver release tags — are preserved
           # forever so deploys of older releases never break.
           tag-selection: untagged
-          # DRY RUN: only lists what would be deleted. The job used to fail before reaching
-          # that point (v3.0.1 rejected the new GITHUB_TOKEN format), so it has not deleted
-          # anything for a while. Read its log, then remove this line to let it delete.
-          dry-run: true
+
+      # Runs even if the step above failed part-way: proves every tag still has all its pieces.
+      - name: Check every published tag is still complete
+        if: always()
+        run: .github/scripts/verify-image.sh "${REGISTRY}/${IMAGE_NAME}"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

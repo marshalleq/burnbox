@@ -17,14 +17,14 @@
     "@nuintun/qrcode": "^5.0.2",
     "drag-drop": "^7.2.0",
     "regenerator-runtime": "^0.14.1",
-    "tus-js-client": "^2.3.1",
-    "uuid": "^11.1.0",
+    "tus-js-client": "^4.3.1",
+    "uuid": "^14.0.3",
     "vue": "^3.5.44",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.4",
-    "@babel/preset-env": "^7.27.2",
+    "@babel/core": "^8.0.10",
+    "@babel/preset-env": "^8.0.7",
     "babel-loader": "^10.1.1",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.5",
@@ -34,13 +34,8 @@
     "style-loader": "^4.0.0",
     "vue-loader": "^17.4.2",
     "webpack": "^5.99.9",
-    "webpack-bundle-analyzer": "^4.10.2",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^5.2.7"
-  },
-  "overrides": {
-    "sockjs": {
-      "uuid": "^11.1.1"
-    }
+    "webpack-bundle-analyzer": "^5.4.0",
+    "webpack-cli": "^7.2.3",
+    "webpack-dev-server": "^6.1.0"
   }
 }

@@ -31,4 +31,4 @@ jobs:
 
       - name: Leave major updates for a human
         if: steps.meta.outputs.update-type == 'version-update:semver-major'
-        run: echo "Major update ${{ steps.meta.outputs.dependency-names }}: not auto-merging."
+        run: 'echo "Major update ${{ steps.meta.outputs.dependency-names }}: not auto-merging."'

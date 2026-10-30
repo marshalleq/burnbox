@@ -53,8 +53,8 @@ node app.js
   above would count everyone together and Burnbox logs a warning. Use the number of proxies in front of
   Burnbox (`BURNBOX_TRUST_PROXY=1` for one, as in the nginx example) or an address such as `loopback`.
 * **Cross-origin uploads are off.** Burnbox's own pages are same-origin and need no CORS. To let another site
-  upload to this instance, set `corsOrigin` to a comma-separated list of origins (or `*` for any), for example
-  `BURNBOX_CORS_ORIGIN=https://files.example.com`.
+  upload to this instance, set `corsOrigin` to a comma-separated list of the exact origins, for example
+  `BURNBOX_CORS_ORIGIN=https://files.example.com`. `*` is refused.
 
 ## SSL
 

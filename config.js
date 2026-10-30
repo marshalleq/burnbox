@@ -68,8 +68,8 @@ const config = {
   // Disable the QR code button for download url sharing, set to true to disable
   "disableQrCode": false,
   // Cross-origin uploads are off. Burnbox's own pages are same-origin and need no CORS.
-  // To let another site upload to this instance, set a comma-separated list of origins
-  // (or '*' for any), e.g. BURNBOX_CORS_ORIGIN=https://files.example.com
+  // To let another site upload to this instance, set a comma-separated list of the exact
+  // origins, e.g. BURNBOX_CORS_ORIGIN=https://files.example.com (any origin is not allowed).
   "corsOrigin": false,
   // Wrong passwords allowed per IP address every 15 minutes before requests are refused.
   // Behind a reverse proxy, also set trustProxy so each visitor is counted separately.
@@ -153,6 +153,10 @@ if (process.env.NODE_ENV !== 'dev') {
       throw new Error(`Refusing to start: ${ k } is empty or a placeholder. Set ${ envName } to a real secret.`);
     }
   }
+}
+
+if (config.corsOrigin && String(config.corsOrigin).split(',').some((o) => o.trim() === '*' || o.trim() === 'null')) {
+  throw new Error('Refusing to start: corsOrigin must list exact origins such as https://files.example.com, not * or null.');
 }
 
 for (const k of ['authFailureLimit', 'downloadRateLimit']) {

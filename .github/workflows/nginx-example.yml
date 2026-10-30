@@ -1,0 +1,34 @@
+name: nginx example
+
+# Runs Burnbox behind docs/nginx-ssl-example.conf and checks what the README promises:
+# a login only on the upload page, large resumable uploads, identical downloads. Not a
+# required check; it runs when the example or the server changes, and weekly.
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - docs/nginx-ssl-example.conf
+      - .github/scripts/nginx-example-test.sh
+      - .github/workflows/nginx-example.yml
+      - lib/**
+      - app.js
+      - config.js
+      - Dockerfile
+  schedule:
+    - cron: '53 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  nginx:
+    name: nginx
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Burnbox behind the example nginx config
+        run: .github/scripts/nginx-example-test.sh

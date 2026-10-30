@@ -211,6 +211,7 @@ refuses "BURNBOX_MAX_FILE_SIZE must be a whole number of bytes" BURNBOX_MAX_FILE
 refuses "BURNBOX_DISABLE_QR_CODE must be true or false" BURNBOX_DISABLE_QR_CODE=maybe
 refuses "BURNBOX_RETENTIONS must be valid JSON" BURNBOX_RETENTIONS='{bad'
 refuses "defaultRetention" BURNBOX_DEFAULT_RETENTION=12345
+refuses "exact origins" BURNBOX_CORS_ORIGIN='*'
 echo "bad environment values refused -> OK"
 
 start_instance 3991 \
@@ -246,3 +247,15 @@ if [ "$nopw" != "400" ] || [ "$withpw" != "201" ]; then
   exit 1
 fi
 echo "requireBucketPassword enforced by the server -> OK"
+
+# The constant-time secret comparison must still give the right answers.
+node -e '
+const { safeEqual } = require("./lib/utils");
+const cases = [["abc", "abc", true], ["abc", "abd", false], ["abc", "abcd", false], ["abcd", "abc", false],
+  ["", "", true], ["", "a", false], ["x".repeat(2000), "x".repeat(2000), true], ["x".repeat(2000), "x".repeat(1999) + "y", false]];
+for (const [a, b, want] of cases) {
+  if (safeEqual(a, b) !== want) { console.error("safeEqual wrong for", a.slice(0, 8), b.slice(0, 8)); process.exit(1); }
+}
+if (safeEqual(undefined, "a") || safeEqual("a", null)) { console.error("safeEqual accepted a non-string"); process.exit(1); }
+'
+echo "constant-time secret comparison -> OK"

@@ -15,8 +15,15 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # ── Lint, build the frontend and smoke test; images are only built if this passes ──
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   # ── Build each platform natively in parallel ──────────────────────
   build:
+    needs: ci
     strategy:
       matrix:
         include:

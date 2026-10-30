@@ -197,3 +197,52 @@ for combo in "BURNBOX_FORCE_HTTPS=true" "BURNBOX_FORCE_HTTPS=true BURNBOX_TRUST_
   esac
 done
 echo "trust-proxy warning and forceHttps handling -> OK"
+
+# Settings given as environment variables are read by type, and bad values stop start-up.
+refuses() { # expected-message-fragment VAR=value...
+  local expect="$1" out; shift
+  if out="$(env "$@" BURNBOX_UPLOAD_DIR="$DATA_DIR" timeout 15 node app.js 2>&1)"; then
+    echo "Burnbox started although it should have refused: $*" >&2; exit 1
+  fi
+  grep -q "$expect" <<<"$out" || { echo "Refused, but without '$expect' for: $*" >&2; echo "$out" >&2; exit 1; }
+}
+refuses "BURNBOX_PORT must be a whole number" BURNBOX_PORT=abc
+refuses "BURNBOX_MAX_FILE_SIZE must be a whole number of bytes" BURNBOX_MAX_FILE_SIZE=2GB
+refuses "BURNBOX_DISABLE_QR_CODE must be true or false" BURNBOX_DISABLE_QR_CODE=maybe
+refuses "BURNBOX_RETENTIONS must be valid JSON" BURNBOX_RETENTIONS='{bad'
+refuses "defaultRetention" BURNBOX_DEFAULT_RETENTION=12345
+echo "bad environment values refused -> OK"
+
+start_instance 3991 \
+  BURNBOX_DISABLE_QR_CODE=false BURNBOX_REQUIRE_BUCKET_PASSWORD=true \
+  BURNBOX_MAX_FILE_SIZE=1000 BURNBOX_MAX_BUCKET_SIZE=5000 \
+  BURNBOX_RETENTIONS='{"one-time":"once","3600":"1h"}' BURNBOX_DEFAULT_RETENTION=3600 \
+  BURNBOX_FILE_UPLOADED_WEBHOOK=http://127.0.0.1:9/hook BURNBOX_ACCESS_LOG=false
+curl -fsS http://127.0.0.1:3991/config.json | python3 -c '
+import json, sys
+c = json.load(sys.stdin)
+want = {"disableQrCode": False, "requireBucketPassword": True, "maxFileSize": 1000,
+        "maxBucketSize": 5000, "defaultRetention": "3600",
+        "retentions": {"one-time": "once", "3600": "1h"}}
+bad = {k: c.get(k) for k, v in want.items() if c.get(k) != v}
+sys.exit(f"config.json does not match the environment: {bad}") if bad else print("environment settings read by type -> OK")
+'
+curl -fsS -o /dev/null http://127.0.0.1:3991/robots.txt
+if grep -q 'GET /robots.txt' "$LOG.3991"; then
+  echo "BURNBOX_ACCESS_LOG=false still wrote an access log line" >&2; exit 1
+fi
+echo "access log switched off by BURNBOX_ACCESS_LOG=false -> OK"
+
+# requireBucketPassword is enforced by the server, not only by the upload page.
+create() { # extra-metadata (may be empty)
+  curl -sS -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3991/files \
+    -H "Tus-Resumable: 1.0.0" -H "Upload-Length: 1" \
+    -H "Upload-Metadata: name $(b64 r.txt),sid $(b64 reqpw$RANDOM),retention $(b64 3600)$1"
+}
+nopw="$(create "")"
+withpw="$(create ",password $(b64 some-bucket-password)")"
+if [ "$nopw" != "400" ] || [ "$withpw" != "201" ]; then
+  echo "requireBucketPassword: without password got $nopw (want 400), with password got $withpw (want 201)" >&2
+  exit 1
+fi
+echo "requireBucketPassword enforced by the server -> OK"

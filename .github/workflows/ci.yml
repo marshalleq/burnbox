@@ -39,6 +39,9 @@ jobs:
       - name: Lint (syntax check every server file)
         run: git ls-files '*.js' '*.mjs' ':!:app/*' ':!:public/*' | xargs -n1 node --check
 
+      - name: Check the README documents every setting
+        run: node .github/scripts/check-readme-options.mjs
+
       - name: Build frontend
         run: npm run build
         working-directory: app

@@ -1,9 +1,9 @@
 # Configuration
 
-First of all, I'll give an overview about the configuration options. See the 
-[config.js](https://github.com/marshalleq/burnbox/blob/master/config.js#L5) for 
-possible values. I do **not** recommend changing this file directly, better use one
-of the following options.
+Every setting, its environment variable, default and effect is listed in the
+[README](../README.md#configuration). This page covers the config-file and environment
+mechanisms in a bit more detail, plus SSL, web hooks and protection. I do **not**
+recommend changing `config.js` directly, better use one of the following options.
 
 ## Config file: NODE_ENV related
 

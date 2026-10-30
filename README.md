@@ -33,10 +33,12 @@ It is your server, so it is only as available as the machine it runs on. You nee
 
 Out of the box, anyone who finds your Burnbox can upload files to it, so run it behind a reverse proxy such as nginx (which also gives you HTTPS) and put a password on uploading. There are two easy ways, and you can use either or both:
 
-* **A login on the upload page only.** Download links stay open, so your clients need no password, but nobody can upload without logging in. A tested nginx example is in [`docs/nginx-ssl-example.conf`](docs/nginx-ssl-example.conf), and [Running it behind nginx](#running-it-behind-nginx) explains it.
+* **A login on the upload page only.** Download links stay open, so your clients need no password, but nobody can upload without logging in. It is a simple switch: one line in the nginx config turns it on or off. A tested example is in [`docs/nginx-ssl-example.conf`](docs/nginx-ssl-example.conf), and [Running it behind nginx](#running-it-behind-nginx) explains it.
 * **Burnbox's own upload password.** Set `BURNBOX_UPLOAD_PASS` and Burnbox asks for it before accepting uploads.
 
 The `/admin` page has its own password (`BURNBOX_ADMIN_PASS`).
+
+These are shared passwords, not individual user accounts. A better sign-in is planned for later; see [issue #30](https://github.com/marshalleq/burnbox/issues/30).
 
 ## Features
 
@@ -96,9 +98,11 @@ Run Burnbox on the same machine as nginx, so that only nginx can reach it, and l
 2. Create a login for uploading: `sudo sh -c 'echo "alice:$(openssl passwd -apr1)" >> /etc/nginx/burnbox.htpasswd'`
 3. Copy the example into nginx, change the server name and certificate paths, and reload nginx.
 
+**Turning the upload login on or off** is one line in the `location /up/` block of the example: `auth_basic "Burnbox uploads";` is on, and `auth_basic off;` is off. Reload nginx after changing it (`sudo nginx -s reload`). With the login off, anyone who can reach `/up/` can upload, so only do that on a private network or when you use `BURNBOX_UPLOAD_PASS` instead.
+
 The example also sets `client_max_body_size 0`. nginx refuses anything over 1 MB by default and Burnbox uploads in 5 MB pieces, so without that line big uploads fail with "413 Request Entity Too Large".
 
-What the example gives you, all checked by running it: `/up/` and the upload endpoint refuse anyone without a login; download pages, files, ZIPs and range requests work without a login; a 60 MB file uploaded in pieces, interrupted and resumed arrived byte-for-byte identical.
+What the example gives you, all checked by running it: `/up/` and the upload endpoint refuse anyone without a login; download pages, files, ZIPs and range requests work without a login; a 60 MB file uploaded in pieces, interrupted and resumed arrived byte-for-byte identical; and with the login switched off, `/up/` and uploads open up without one.
 
 ## Configuration
 

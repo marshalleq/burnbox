@@ -7,13 +7,13 @@ set -euo pipefail
 REPO="${1:-$(pwd)}"
 W="$(mktemp -d)"
 cleanup() {
-  docker rm -f bb-app bb-nginx bb-nginx-broken >/dev/null 2>&1 || true
+  docker rm -f bb-app bb-nginx bb-nginx-broken bb-nginx-open >/dev/null 2>&1 || true
   docker network rm bbnet >/dev/null 2>&1 || true
   rm -rf "$W"
 }
 trap cleanup EXIT
 
-cleanup_first() { docker rm -f bb-app bb-nginx bb-nginx-broken >/dev/null 2>&1 || true; docker network rm bbnet >/dev/null 2>&1 || true; }
+cleanup_first() { docker rm -f bb-app bb-nginx bb-nginx-broken bb-nginx-open >/dev/null 2>&1 || true; docker network rm bbnet >/dev/null 2>&1 || true; }
 cleanup_first
 docker network create bbnet >/dev/null
 
@@ -45,6 +45,11 @@ body = body.replace("http://127.0.0.1:3000", "http://bb-app:3000")
 open(w + "/good.conf", "w").write("server_tokens off;\n" + body)
 broken = body.replace("client_max_body_size 0;", "")
 open(w + "/broken.conf", "w").write("server_tokens off;\n" + broken)
+# the documented one-line switch: login off
+# only the real directive (a line that starts with it), not the comments that quote it
+opened, n = re.subn(r'(?m)^(\s*)auth_basic "Burnbox uploads";', r'\1auth_basic off;', body)
+assert n == 1, f"expected exactly one auth_basic directive, found {n}"
+open(w + "/open.conf", "w").write("server_tokens off;\n" + opened)
 PY
 
 run_nginx() { # name port conf
@@ -54,6 +59,7 @@ run_nginx() { # name port conf
 }
 run_nginx bb-nginx 8085 good.conf
 run_nginx bb-nginx-broken 8086 broken.conf
+run_nginx bb-nginx-open 8087 open.conf
 sleep 5
 B=http://127.0.0.1:8085
 b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
@@ -102,6 +108,12 @@ LOC2="$(curl -sS -D - -o /dev/null -u "alice:$USERPW" -X POST $BB/up/files -H 'T
 C="$(dd if="$W/big.bin" bs=$CHUNK count=1 2>/dev/null | curl -s -o /dev/null -w '%{http_code}' -u "alice:$USERPW" -X PATCH "$BB$LOC2" \
   -H 'Tus-Resumable: 1.0.0' -H 'Content-Type: application/offset+octet-stream' -H 'Upload-Offset: 0' --data-binary @-)"
 echo "      without the setting, a 5 MB chunk gets HTTP $C (413 = Request Entity Too Large)"
+
+echo "== the login is a one-line switch (auth_basic off)"
+OPEN=http://127.0.0.1:8087
+[ "$(code $OPEN/up/)" = "200" ] && pass "login off: /up/ opens without a login" || fail "login-off /up/"
+[ "$(code -X POST $OPEN/up/files -H 'Tus-Resumable: 1.0.0' -H 'Upload-Length: 1' -H "Upload-Metadata: name $(b64 a.txt),sid $(b64 open$RANDOM),retention $(b64 3600)")" = "201" ] \
+  && pass "login off: upload works without a login" || fail "login-off upload"
 
 # The broken config must really fail, otherwise the example's setting proves nothing.
 [ "$C" = "413" ] || fail "expected 413 without client_max_body_size, got $C"

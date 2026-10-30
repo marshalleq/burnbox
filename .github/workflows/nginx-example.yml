@@ -1,5 +1,7 @@
 name: nginx example
 
+run-name: nginx example - ${{ github.event.pull_request.title || format('{0} ({1})', github.ref_name, github.event_name) }}
+
 # Runs Burnbox behind docs/nginx-ssl-example.conf and checks what the README promises:
 # a login only on the upload page, large resumable uploads, identical downloads. Not a
 # required check; it runs when the example or the server changes, and weekly.

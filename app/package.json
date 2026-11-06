@@ -23,7 +23,7 @@
     "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.10",
+    "@babel/core": "^8.1.0",
     "@babel/preset-env": "^8.0.7",
     "babel-loader": "^10.1.1",
     "cross-env": "^10.1.0",
@@ -34,8 +34,8 @@
     "style-loader": "^4.0.0",
     "vue-loader": "^17.4.2",
     "webpack": "^5.99.9",
-    "webpack-bundle-analyzer": "^5.4.0",
-    "webpack-cli": "^7.2.3",
+    "webpack-bundle-analyzer": "^5.4.1",
+    "webpack-cli": "^7.3.1",
     "webpack-dev-server": "^6.1.0"
   }
 }

@@ -309,7 +309,11 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 * **Daily advisory watch** (`.github/workflows/advisory-watch.yml`). Dependabot only knows GitHub's reviewed advisory list, so each day this also checks advisories that the upstream libraries publish in their own repositories, Node.js core vulnerabilities against the Node version in the published image, and any dependency licence that is not on the allow-list. If something applies it opens (and keeps up to date) one issue titled "Advisory watch: findings that apply to Burnbox", and closes it when nothing applies. If a check cannot run, the job fails rather than reporting all clear.
 * **CodeQL** (`.github/workflows/codeql.yml`) scans Burnbox's own JavaScript and Vue code for security bugs on every push and pull request, and weekly. Results appear under Security, then Code scanning.
 
-**Pinned or overridden dependencies.** None at the moment. If one is ever needed to clear a security advisory in build-time tooling, it is recorded here with the reason and removed once the upstream packages catch up.
+**Pinned or overridden dependencies.** Overrides exist only to clear security advisories that the parent package has not yet fixed. Remove each one once the upstream package catches up.
+
+| Package | Override | Reason |
+|---|---|---|
+| `readdir-glob` (via `archiver`) | `minimatch ^11.0.1` | `readdir-glob` 3.0.0 pins `minimatch` 10, which has a denial-of-service advisory (fixed in 11.0.1). Burnbox never uses archiver's glob feature, but the ZIP download is tested with the override. |
 
 **Browser support.** The frontend uses Vue 3, which does not support Internet Explorer 11.
 

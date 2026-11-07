@@ -1,0 +1,37 @@
+name: artifact-test
+run-name: TEMPORARY artifact test
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  up:
+    strategy:
+      matrix:
+        slug: [linux-amd64, linux-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${{ matrix.slug }}-0123456789abcdef"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.slug }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+  down:
+    needs: up
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+      - name: Check both files arrived flat in one folder
+        run: |
+          ls -l /tmp/digests
+          test -f /tmp/digests/linux-amd64-0123456789abcdef
+          test -f /tmp/digests/linux-arm64-0123456789abcdef
+          test "$(ls /tmp/digests | wc -l)" = 2

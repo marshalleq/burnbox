@@ -46,5 +46,10 @@
   },
   "author": "Marshalleq <atoms@electropositive.net>",
   "contributors": [],
-  "license": "BSD-2-Clause"
+  "license": "BSD-2-Clause",
+  "overrides": {
+    "readdir-glob": {
+      "minimatch": "^11.0.1"
+    }
+  }
 }

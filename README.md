@@ -302,7 +302,7 @@ To run the same checks locally, use the Node version in `.nvmrc`, then: `npm ci 
 
 **Automatic updates.** Dependabot (`.github/dependabot.yml`) checks both npm folders (`/` and `/app`), the Dockerfile and the GitHub Actions each week, and raises security fixes as soon as an advisory is published.
 
-* Minor and patch updates are grouped into one pull request per area. They are merged automatically once `ci` passes (`.github/workflows/dependabot-automerge.yml`).
+* Minor and patch updates are grouped into one pull request per area. They are merged automatically once `ci` passes, and the same workflow then starts the image build so the update is published straight away (`.github/workflows/dependabot-automerge.yml`). It has to start the build itself because GitHub does not run the usual build for a merge made by a workflow.
 * Major updates are never merged automatically. They stay open as pull requests until someone has tested and decided on them.
 * The image is rebuilt from scratch every Sunday so that base-image security fixes are picked up even when no code has changed.
 * **Image clean-up.** After each build, superseded untagged image versions older than 7 days are deleted from the GitHub Container Registry so old builds do not pile up. Tagged images are never deleted, and the pieces of a tagged multi-architecture image are protected. A check afterwards (`.github/scripts/verify-image.sh`) confirms every published tag still has all its pieces and fails the job if not.

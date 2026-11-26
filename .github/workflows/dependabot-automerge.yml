@@ -2,21 +2,33 @@ name: Dependabot auto-merge
 
 run-name: Auto-merge - ${{ github.event.pull_request.title }}
 
-# Turns on auto-merge for Dependabot patch and minor updates (this includes
-# security updates). GitHub then merges the PR only once the required "ci"
-# check passes. Major updates are never auto-merged: they wait for a human.
+# Merges Dependabot patch and minor updates (this includes security updates) once the
+# required "ci / ci" check passes, then starts the image build: a merge made with the
+# built-in token does not trigger the "push" build, so without this step the fix would
+# only be published at the weekly rebuild. Major updates are never auto-merged.
 
 on: pull_request
 
 permissions:
   contents: write
   pull-requests: write
+  actions: write
+  checks: read
+
+# A Dependabot rebase replaces the old wait.
+concurrency:
+  group: automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   automerge:
     name: automerge
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
     steps:
       - name: Read Dependabot metadata
         id: meta
@@ -24,13 +36,24 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for patch and minor updates
+      - name: Wait for the required checks
+        id: eligible
         if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Give the other workflows time to register their checks first.
+          sleep 90
+          gh pr checks "$PR_URL" --required --watch --interval 30
+
+      - name: Merge
+        if: steps.eligible.outcome == 'success'
+        run: gh pr merge --squash "$PR_URL"
+
+      - name: Start the image build on master
+        if: steps.eligible.outcome == 'success'
+        run: gh workflow run docker-build.yml --repo "$GITHUB_REPOSITORY" --ref master
 
       - name: Leave major updates for a human
         if: steps.meta.outputs.update-type == 'version-update:semver-major'
-        run: 'echo "Major update ${{ steps.meta.outputs.dependency-names }}: not auto-merging."'
+        run: echo "Major update $NAMES, not auto-merging."
+        env:
+          NAMES: ${{ steps.meta.outputs.dependency-names }}

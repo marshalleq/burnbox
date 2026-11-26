@@ -12,6 +12,8 @@ on:
   # Weekly clean rebuild (no cache) so base-image security fixes are picked up
   schedule:
     - cron: '17 3 * * 0'
+  # Started by dependabot-automerge.yml after it merges: its merge does not trigger "push".
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
